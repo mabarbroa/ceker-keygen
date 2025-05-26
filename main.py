@@ -1,10 +1,37 @@
 import os
 import sys
+import logging
+from datetime import datetime
+from eth_account import Account
 
 class EthereumAddressChecker:
   def __init__(self):
       # Path file private key
       self.private_key_file = 'privatekey.txt'
+      
+      # Siapkan logging
+      self.setup_logging()
+  
+  def setup_logging(self):
+      """
+      Konfigurasi logging
+      """
+      # Buat direktori logs jika belum ada
+      os.makedirs('logs', exist_ok=True)
+      
+      # Nama file log dengan timestamp
+      log_filename = f'logs/ethereum_addresses_{datetime.now().strftime("%Y%m%d_%H%M%S")}.log'
+      
+      # Konfigurasi logging
+      logging.basicConfig(
+          level=logging.INFO,
+          format='%(message)s',
+          handlers=[
+              logging.FileHandler(log_filename),
+              logging.StreamHandler(sys.stdout)
+          ]
+      )
+      self.logger = logging.getLogger(__name__)
   
   def read_private_keys(self):
       """
@@ -16,31 +43,29 @@ class EthereumAddressChecker:
               keys = [key.strip() for key in file.readlines() if key.strip()]
           return keys
       except FileNotFoundError:
-          print(f"File {self.private_key_file} tidak ditemukan!")
+          self.logger.error(f"File {self.private_key_file} tidak ditemukan!")
           return []
       except Exception as e:
-          print(f"Error membaca file: {e}")
+          self.logger.error(f"Error membaca file: {e}")
           return []
   
-  def check_address(self, private_key):
+  def get_address_from_private_key(self, private_key):
       """
-      Cek detail alamat dari private key
+      Dapatkan alamat Ethereum dari private key
       """
       try:
           # Pastikan private key dimulai dengan '0x'
           if not private_key.startswith('0x'):
               private_key = '0x' + private_key
           
-          # Proses pengecekan (contoh sederhana)
-          return {
-              'private_key': private_key,
-              'status': 'Valid'
-          }
+          # Buat akun dari private key
+          account = Account.from_key(private_key)
+          
+          # Kembalikan alamat
+          return account.address
       except Exception as e:
-          return {
-              'private_key': private_key,
-              'error': str(e)
-          }
+          self.logger.error(f"Error mengonversi private key: {e}")
+          return None
 
 def main():
   # Inisialisasi checker
@@ -51,19 +76,19 @@ def main():
   
   # Jika tidak ada private key
   if not private_keys:
-      print("Tidak ada private key yang ditemukan!")
+      checker.logger.error("Tidak ada private key yang ditemukan!")
       sys.exit(1)
   
   # Proses setiap private key
-  results = []
+  addresses = []
   for key in private_keys:
-      result = checker.check_address(key)
-      results.append(result)
+      address = checker.get_address_from_private_key(key)
+      if address:
+          addresses.append(address)
+          checker.logger.info(address)  # Log setiap alamat
   
-  # Tampilkan hasil
-  print("Hasil Pengecekan Private Key:")
-  for result in results:
-      print(result)
+  # Log total alamat
+  checker.logger.info(f"\nTotal alamat: {len(addresses)}")
 
 if __name__ == '__main__':
   main()
