@@ -1,0 +1,15 @@
+# Private Key Files
+privatekey.txt
+*.key
+*.pem
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environments
+.env
+.venv
+env/
+venv/
